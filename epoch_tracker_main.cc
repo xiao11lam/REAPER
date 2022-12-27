@@ -100,6 +100,8 @@ Track* MakeEpochOutput(EpochTracker &et, float unvoiced_pm_interval) {
   return pm_track;
 }
 
+
+// declare cor as a pointer to a pointer to an int
 Track* MakeF0Output(EpochTracker &et, float resample_interval, Track** cor) {
   std::vector<float> f0;
   std::vector<float> corr;
@@ -113,8 +115,11 @@ Track* MakeF0Output(EpochTracker &et, float resample_interval, Track** cor) {
   cor_track->resize(corr.size());
   for (int32_t i = 0; i < f0.size(); ++i) {
     float t = resample_interval * i;
+    // It is used with a pointer variable pointing to a structure or union.
     f0_track->t(i) = t;
+    // The Dot(.) operator is used to normally access members of a structure or union.
     cor_track->t(i) = t;
+    // The Arrow(->) operator exists to access the members of the structure or the unions using pointers.
     f0_track->set_v(i, (f0[i] > 0.0) ? true : false);
     cor_track->set_v(i, (f0[i] > 0.0) ? true : false);
     f0_track->a(i) = (f0[i] > 0.0) ? f0[i] : -1.0;
@@ -142,6 +147,11 @@ bool ComputeEpochsAndF0(EpochTracker &et, float unvoiced_pulse_interval,
   *f0 = MakeF0Output(et, external_frame_interval, corr);
   return true;
 }
+
+
+
+//To compute F0 (pitch) and pitchmark (GCI) tracks and write them out as ASCII files:
+//reaper -i /tmp/bla.wav -f /tmp/bla.f0 -p /tmp/bla.pm -a
 
 int main(int argc, char* argv[]) {
   int opt = 0;
@@ -238,6 +248,11 @@ int main(int argc, char* argv[]) {
   }
 
   // Save outputs.
+  //   bool Save(const std::string &filename, bool ascii) const;
+  // (pointer_name)->(variable_name)
+  // https://www.geeksforgeeks.org/arrow-operator-in-c-c-with-examples/
+  // Assigning value to Save(f0_output, ascii))
+
   if (!f0_output.empty() && !f0->Save(f0_output, ascii)) {
     delete f0;
     fprintf(stderr, "Failed to save f0 to '%s'\n", f0_output.c_str());

@@ -28,22 +28,43 @@ limitations under the License.
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 /* Generate a Hanning window, if one does not already exist. */
-void LpcAnalyzer::HannWindow(const float* din, float* dout, int n,
-                             float preemp) {
+//  void HannWindow(const float* data_in, float* , int windowsize, float preemp);
+// din: data_in, the samples of input buffer
+// dout: data_out
+// windowsize: n
+// preemp: preemp
+
+void LpcAnalyzer::HannWindow(const float* din, float* dout, int n, float preemp) {
+
   int i;
   const float *p;
 
   // Need to create a new Hanning window? */
+  // size_t type is a base unsigned integer type of C and C++ language. It is the type of the result returned by sizeof operator.
+  // The type's size is chosen so that it can store the maximum size of a theoretically possible array of any type.
+  // On a 32-bit system size_t will take 32 bits, on a 64-bit one 64 bits.
+
   if (window_.size() != static_cast<size_t>(n)) {
     double arg, half = 0.5;
+    // like pick out the nth value within the window_
     window_.resize(n);
+    // Just use the w(n) function as multiplier, loop through all your samples (changing n as you go).
+    // n is the window length
+    // This is the actual window function: double multiplier = 0.5 * (1 - cos(2*PI*i/2047));
+
+    // convolute window function within one frame
     for (i = 0, arg = M_PI * 2.0 / n; i < n; ++i)
       window_[i] = (half - half * cos((half + i) * arg));
   }
+
+
   /* If preemphasis is to be performed,  this assumes that there are n+1 valid
      samples in the input buffer (din). */
   if (preemp != 0.0) {
     for (i = 0, p = din + 1; i < n; ++i)
+      // https://www.geeksforgeeks.org/difference-between-p-p-and-p/
+      // Difference between ++*p, *p++ and *++p,
+      // the expression *p++ is treated as *(p++), Therefore the output of is “dout[0] = 10, dout[1] = 20, *dout = 20 “.
       *dout++ = window_[i] * (*p++ - (preemp * *din++));
   } else {
     for (i = 0; i < n; ++i)
@@ -69,23 +90,33 @@ void LpcAnalyzer::GetWindow(int n) {
 * Return the normalized autocorrelation coefficients in r.
 * The rms is returned in e.
 */
+
+//           void Autoc(int windowsize, float* data_in, int order, float* autoc, float* rms);
 void LpcAnalyzer::Autoc(int windowsize, float* s, int p, float* r, float* e) {
   int i, j;
   float *q, *t, sum, sum0;
 
+  // Analyze frame by frame
   for (i = windowsize, q = s, sum0 = 0.0; i--;) {
+    // Copied the audio data buffer
+    // sum = *(q++);
     sum = *q++;
+    // Get the Sum Sqaure of the data, in order to get the signal energy
     sum0 += sum*sum;
   }
+
+
   *r = 1.;                      /* r[0] will always = 1.0 */
   if (sum0 == 0.0) {            /* No energy: fake low-energy white noise. */
     *e = 1.;                    /* Arbitrarily assign 1 to rms. */
     /* Now fake autocorrelation of white noise. */
+    // i < LPC order
     for (i = 1; i <= p; i++) {
       r[i] = 0.;
     }
     return;
   }
+
   *e = sqrt(sum0 / windowsize);
   sum0 = 1.0 / sum0;
   for (i = 1; i <= p; i++) {
@@ -102,11 +133,16 @@ void LpcAnalyzer::Autoc(int windowsize, float* s, int p, float* r, float* e) {
 * Note: Durbin returns the coefficients in normal sign format.
 *       (i.e. a[0] is assumed to be = +1.)
 */
+
+//By exploiting the properties of the Toeplitz matrix, several efficient
+//        algorithms have been devised for solving the Yule-Walker equations,
+//        e.g., Durbin’s recursive procedure.
+
 void LpcAnalyzer::Durbin(float* r, float* k, float* a, int p, float* ex) {
   float  bb[BIGSORD];
   int i, j;
   float e, s, *b = bb;
-
+  /* find lpc coefficients */
   e = *r;
   *k = -r[1] / e;
   *a = *k;
@@ -124,6 +160,7 @@ void LpcAnalyzer::Durbin(float* r, float* k, float* a, int p, float* ex) {
     for (j = 0; j < i; j++) {
       a[j] += k[i] * b[i - j - 1];
     }
+    //
     e *= (1.0 - (k[i] * k[i]));
   }
   *ex = e;
@@ -210,8 +247,9 @@ int LpcAnalyzer::ComputeLpc(int lpc_ord, float noise_floor, int wsize,
     return false;
 
   float *dwind = new float[wsize];
-
+  // Windowing and pre-amp
   HannWindow(data, dwind, wsize, preemp);
+
   if (!(r = ar)) r = rho;       /* Permit optional return of the various */
   if (!(kp = lpck)) kp = k;     /* coefficients and intermediate results. */
   if (!(ap = lpca)) ap = a;
