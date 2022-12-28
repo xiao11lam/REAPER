@@ -134,6 +134,17 @@ void EpochTracker::SetParameters(void) {
   endpoint_padding_ = 0.01;
 }
 
+//
+//The :: is called scope resolution operator. Can be used like this:
+//
+//:: identifier
+//class-name :: identifier
+//namespace :: identifier
+
+
+
+
+// 这里调用了EpochTracker里的Init函数
 bool EpochTracker::Init(const int16_t* input, int32_t n_input, float sample_rate,
                         float min_f0_search, float max_f0_search,
                         bool do_highpass, bool do_hilbert_transform) {

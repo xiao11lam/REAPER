@@ -96,7 +96,9 @@ static const float kMinF0Search = 40.0;
 static const float kMaxF0Search = 500.0;
 static const float kUnvoicedPulseInterval = 0.01;
 static const float kUnvoicedCost = 0.9;
+// 默认开启高通滤波，-s的话就会关闭
 static const bool kDoHighpass = true;
+// true 就是布尔值1
 static const bool kDoHilbertTransform = false;
 static const char kDebugName[] = "";
 

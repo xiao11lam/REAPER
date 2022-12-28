@@ -25,7 +25,7 @@ limitations under the License.
 #include "epoch_tracker/epoch_tracker.h"
 #include "wave/wave.h"
 
-
+// 这里是-help默认出来的信息。
 const char* kHelp = "Usage: <bin> -i <input_file> "
     "[-f <f0_output> -p <pitchmarks_output> \\\n"
     "-c <correlations_output> "
@@ -91,7 +91,21 @@ Track* MakeEpochOutput(EpochTracker &et, float unvoiced_pm_interval) {
   std::vector<float> times;
   std::vector<int16_t> voicing;
   et.GetFilledEpochs(unvoiced_pm_interval, &times, &voicing);
-  Track* pm_track = new Track;
+  // https://cplusplus.com/doc/tutorial/classes/#pointers_to_classes
+  // Similarly as with plain data structures, the members of an object can be accessed directly from a pointer by using the arrow operator (->).
+
+  // Track* pm_track is a pointer to an object of class Track.
+//
+//    栈： 在函数内部声明的所有变量都将占用栈内存
+//    堆： 这是程序中未使用的内存，在程序运行时可用于动态分配内存
+  Track* pm_track = new Track; // creates a track of type track
+//    https://www.twle.cn/l/yufei/cplusplus/cplusplus-basic-dynamic-memory.html
+//    在 C++ 中，我们可以使用 new 运算符为给定类型的变量在运行时分配堆内的内存，然后返回所分配的空间地址, new data-type;
+//
+//    一旦不需要动态分配的内存，可以使用 delete 运算符来删除由 new 运算符分配的内存
+// 比如我们需要定义一个指向 Track 类型的指针pm_track，然后请求内存，该内存在执行时被分配。
+
+
   pm_track->resize(times.size());
   for (int32_t i = 0; i < times.size(); ++i) {
     pm_track->t(i) = times[i];
@@ -129,6 +143,7 @@ Track* MakeF0Output(EpochTracker &et, float resample_interval, Track** cor) {
   return f0_track;
 }
 
+// 这里会返回布尔值。
 bool ComputeEpochsAndF0(EpochTracker &et, float unvoiced_pulse_interval,
 			float external_frame_interval,
 			Track** pm, Track** f0, Track** corr) {
@@ -154,10 +169,27 @@ bool ComputeEpochsAndF0(EpochTracker &et, float unvoiced_pulse_interval,
 //reaper -i /tmp/bla.wav -f /tmp/bla.f0 -p /tmp/bla.pm -a
 
 int main(int argc, char* argv[]) {
+
+//static const float kExternalFrameInterval = 0.005;
+//static const float kInternalFrameInterval = 0.002;
+//static const float kMinF0Search = 40.0;
+//static const float kMaxF0Search = 500.0;
+//static const float kUnvoicedPulseInterval = 0.01;
+//static const float kUnvoicedCost = 0.9;
+// 默认开启高通滤波，-s的话就会关闭
+//static const bool kDoHighpass = true;
+//  true 就是布尔值1
+//static const bool kDoHilbertTransform = false;
+//static const char kDebugName[] = "";
+
+
   int opt = 0;
   std::string filename;
+  // 这里的f0_output是输出的f0的文件名字
   std::string f0_output;
+  // 这里是GCI track文件
   std::string pm_output;
+
   std::string corr_output;
   bool do_hilbert_transform = kDoHilbertTransform;
   bool do_high_pass = kDoHighpass;
@@ -190,6 +222,7 @@ int main(int argc, char* argv[]) {
         do_hilbert_transform = true;
         break;
       case 's':
+          // 这里决定了我们关不关高通滤波器
         do_high_pass = false;
         break;
       case 'e':
@@ -227,10 +260,29 @@ int main(int argc, char* argv[]) {
   }
 
   EpochTracker et;
+  // void set_unvoiced_cost(float v) { unvoiced_cost_ = v; }
   et.set_unvoiced_cost(unvoiced_cost);
+  // unvoiced_cost在这里是kUnvoicedCos等于0.9
+  // 16 bit 的采样率，这里转成了16bit的数据，放在指针wave_datap里面
   int16_t* wave_datap = const_cast<int16_t *>(wav.data()->data());
   int32_t n_samples = wav.num_samples();
   float sample_rate = wav.sample_rate();
+    // Prepare the instance for use.  Some sanity check is made on the
+    // parameters, and the instance is reset so it can be reused
+    // multiple times by simply calling Init() for each new input
+    // signal. frame_interval determines the framing for some of the
+    // internal feature computations, and for the periodic resampling of
+    // F0 that will occur during final tracking result output.  min_
+    // and max_f0_search are the bounding values, in Hz, for the F0
+    // search.
+    // NOTE: This Init method is DEPRECATED, and is only retained to
+    // support legacy code.  IT MAY GO AWAY SOON.  This is NOT to be
+    // used with ComputeEpochs().
+
+    // 初始化对象et
+    // The way to understand the “!” operator is to think that as a “not”,
+    // so when you ask if(!programming) is a way to express “if it does not program do such”….
+    // You could read it as "when there is no Init".
   if (!et.Init(wave_datap, n_samples, sample_rate,
 	       min_f0, max_f0, do_high_pass, do_hilbert_transform)) {
     return 1;
@@ -239,7 +291,7 @@ int main(int argc, char* argv[]) {
     et.set_debug_name(debug_output);
   }
   // Compute f0 and pitchmarks.
-  Track *f0 = NULL;
+  Track *f0 = NULL;  // // 初始化为 null 的指针f0
   Track *pm = NULL;
   Track *corr = NULL;
   if (!ComputeEpochsAndF0(et, inter_pulse, external_frame_interval, &pm, &f0, &corr)) {
@@ -253,6 +305,8 @@ int main(int argc, char* argv[]) {
   // https://www.geeksforgeeks.org/arrow-operator-in-c-c-with-examples/
   // Assigning value to Save(f0_output, ascii))
 
+
+  // save 函数Save(const std::string &filename, bool ascii)
   if (!f0_output.empty() && !f0->Save(f0_output, ascii)) {
     delete f0;
     fprintf(stderr, "Failed to save f0 to '%s'\n", f0_output.c_str());
@@ -268,7 +322,7 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "Failed to save correlations to '%s'\n", corr_output.c_str());
     return 1;
   }
-  delete f0;
+  delete f0;  // 释放 f0 所指向的内存
   delete pm;
   delete corr;
   return 0;
